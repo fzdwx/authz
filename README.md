@@ -14,14 +14,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/fzdwx/authz"
 )
-import "github.com/fzdwx/authz"
 
 func foo() {
 	ctx := context.Background()
 	c := atuhz.NewClient[string](authz.NewMemoryStore(), DefaultPermissionSupplier[string]{})
 
-	var token, _ = c.Login(ctx, "1", &authz.LoginOption[string]{
+	var token, _ = c.Login(ctx, &authz.LoginOption[string]{
 		ID: "1",
 	})
 
