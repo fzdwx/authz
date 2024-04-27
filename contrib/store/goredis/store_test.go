@@ -1,24 +1,34 @@
-package authz
+package goredis
 
 import (
 	"context"
+	"github.com/fzdwx/authz"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestClient(t *testing.T) {
+func getStore() authz.Store {
+	client := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	client.FlushDB(context.Background())
+	return NewStore(client)
+}
+
+func TestStore(t *testing.T) {
 	ctx := context.Background()
-	c := NewClient[string](NewMemoryStore(), DefaultPermissionSupplier[string]{})
-	var token, err = c.Login(ctx, &LoginOption[string]{
+	c := authz.NewClient[string](getStore(), authz.DefaultPermissionSupplier[string]{})
+	var token, err = c.Login(ctx, &authz.LoginOption[string]{
 		ID: "1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, err = c.GetSession(ctx)
-	assert.Equal(t, ErrNoToken, err)
+	assert.Equal(t, authz.ErrNoToken, err)
 
-	ctx = SetToken(ctx, token)
+	ctx = authz.SetToken(ctx, token)
 	var s, err2 = c.GetSession(ctx)
 	if err2 != nil {
 		t.Fatal(err2)

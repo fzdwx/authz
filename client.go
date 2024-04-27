@@ -65,7 +65,7 @@ func (c *client[ID]) Login(ctx context.Context, opt *LoginOption[ID]) (string, e
 		return "", fmt.Errorf("get or create session: %w", err)
 	}
 
-	if err := c.setTokenMappingID(opt.ID, token); err != nil {
+	if err := c.setTokenMappingID(ctx, opt.ID, token); err != nil {
 		return "", fmt.Errorf("set token mapping: %w", err)
 	}
 
@@ -75,7 +75,7 @@ func (c *client[ID]) Login(ctx context.Context, opt *LoginOption[ID]) (string, e
 func (c *client[ID]) GetSession(ctx context.Context) (*Session[ID], error) {
 	token, ok := GetToken(ctx)
 	if !ok {
-		return nil, fmt.Errorf("token not found in context")
+		return nil, ErrNoToken
 	}
 
 	id, err := c.getIDFromToken(ctx, token)
@@ -178,13 +178,13 @@ func (c *client[ID]) getTokenMappingKey(token string) string {
 	return fmt.Sprintf("%s:token:%s", c.keyPrefix, token)
 }
 
-func (c *client[ID]) setTokenMappingID(id ID, token string) error {
+func (c *client[ID]) setTokenMappingID(ctx context.Context, id ID, token string) error {
 	var m = idMapping[ID]{ID: id}
 
 	if bytes, err := json.Marshal(&m); err != nil {
 		return err
 	} else {
-		return c.store.Set(nil, c.getTokenMappingKey(token), string(bytes))
+		return c.store.Set(ctx, c.getTokenMappingKey(token), string(bytes))
 	}
 }
 

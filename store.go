@@ -2,7 +2,6 @@ package authz
 
 import (
 	"context"
-	"errors"
 )
 
 type Store interface {
@@ -18,10 +17,6 @@ func (m *memoryStore) Set(ctx context.Context, key string, value string) error {
 	m.data[key] = value
 	return nil
 }
-
-var (
-	ErrStoreValueNotFound = errors.New("value not found")
-)
 
 func (m *memoryStore) Get(ctx context.Context, key string) (string, error) {
 	val, ok := m.data[key]
