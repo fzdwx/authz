@@ -6,6 +6,10 @@ A simple authorization library for Go.
 go get github.com/fzdwx/authz@main
 ```
 
+## Supported frameworks
+
+- [x] [Gin](./examples/gin)
+
 ## Usage
 
 ```go
