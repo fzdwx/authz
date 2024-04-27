@@ -16,7 +16,11 @@ type Client[ID IdType] interface {
 	// Login creates a new session for the user with the given ID and returns a token
 	Login(ctx context.Context, opt *LoginOption[ID]) (string, error)
 	// GetSession returns the session associated with the given token
-	GetSession(ctx context.Context, token string) (*Session[ID], error)
+	GetSession(ctx context.Context) (*Session[ID], error)
+	// Set sets the value of the given key in the session metadata
+	Set(ctx context.Context, key, value string) error
+	// SetMetadata sets the metadata of the session
+	SetMetadata(ctx context.Context, metadata map[string]string) error
 }
 
 type client[ID IdType] struct {
@@ -68,7 +72,12 @@ func (c *client[ID]) Login(ctx context.Context, opt *LoginOption[ID]) (string, e
 	return token, nil
 }
 
-func (c *client[ID]) GetSession(ctx context.Context, token string) (*Session[ID], error) {
+func (c *client[ID]) GetSession(ctx context.Context) (*Session[ID], error) {
+	token, ok := GetToken(ctx)
+	if !ok {
+		return nil, fmt.Errorf("token not found in context")
+	}
+
 	id, err := c.getIDFromToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -85,6 +94,20 @@ func (c *client[ID]) GetSession(ctx context.Context, token string) (*Session[ID]
 	}
 
 	return &session, err
+}
+
+func (c *client[ID]) SetMetadata(ctx context.Context, metadata map[string]string) error {
+	session, err := c.GetSession(ctx)
+	if err != nil {
+		return err
+	}
+
+	session.mergeMetadata(metadata)
+	return c.saveSession(ctx, session, c.getSessionKey(session.ID))
+}
+
+func (c *client[ID]) Set(ctx context.Context, key, value string) error {
+	return c.SetMetadata(ctx, map[string]string{key: value})
 }
 
 func (c *client[ID]) getOrCreateSession(ctx context.Context, id ID, plat string, metadata map[string]string) (*Session[ID], string, error) {
@@ -114,15 +137,22 @@ func (c *client[ID]) getOrCreateSession(ctx context.Context, id ID, plat string,
 	token := makeToken()
 	session.addToken(token, plat)
 	session.mergeMetadata(metadata)
+	if err := c.saveSession(ctx, session, sessionKey); err != nil {
+		return nil, "", err
+	}
+	return session, token, nil
+}
+
+func (c *client[ID]) saveSession(ctx context.Context, session *Session[ID], sessionKey string) error {
 	sessionBytes, err := json.Marshal(session)
 	if err != nil {
-		return nil, "", fmt.Errorf("marshal new session: %w", err)
+		return fmt.Errorf("marshal new session: %w", err)
 	}
 
 	if err := c.store.Set(ctx, sessionKey, string(sessionBytes)); err != nil {
-		return nil, "", fmt.Errorf("set session: %w", err)
+		return fmt.Errorf("set session: %w", err)
 	}
-	return session, token, nil
+	return nil
 }
 
 func (o *LoginOption[ID]) prepare() {

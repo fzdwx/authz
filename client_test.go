@@ -16,7 +16,8 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var s, err2 = c.GetSession(ctx, token)
+	ctx = SetToken(ctx, token)
+	var s, err2 = c.GetSession(ctx)
 	if err2 != nil {
 		t.Fatal(err2)
 	}

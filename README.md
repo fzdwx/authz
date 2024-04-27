@@ -24,8 +24,8 @@ func foo() {
 	var token, _ = c.Login(ctx, &authz.LoginOption[string]{
 		ID: "1",
 	})
-
-	var session, _ = c.GetSession(ctx, token)
+	ctx = SetToken(ctx, token)
+	var session, _ = c.GetSession(ctx)
 	fmt.Println(session.ID)
 }
 

@@ -1,6 +1,8 @@
 package authz
 
-import "time"
+import (
+	"time"
+)
 
 type Model[ID any] struct {
 	ID       ID
